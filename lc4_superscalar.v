@@ -201,7 +201,7 @@ module lc4_processor
 
     assign decode_SSstall_input_A = is_AB_dependent ? 1'b1 : 0;
     //decode stall reg
-    Nbit_reg #(1, 1'h0) decode_stall_A (.in(decode_SSstall_input_A), .out(decode_stall_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
+    Nbit_reg #(1, 1'h0) decode_stall_reg_A (.in(decode_SSstall_input_A), .out(decode_stall_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
 
     // Decode Program counter register
     Nbit_reg #(16, 16'h8200) decode_pc_reg_A (.in(fetch_pc_A), .out(decode_pc_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
@@ -256,7 +256,7 @@ module lc4_processor
 
 
     //decode stall reg
-    Nbit_reg #(1, 1'h0) exe_stall_A (.in(decode_stall_A), .out(exe_stall_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
+    Nbit_reg #(1, 1'h0) exe_stall_reg_A (.in(decode_stall_A), .out(exe_stall_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
 
     Nbit_reg #(16, 16'h8200) exe_pc_reg_A (.in(decode_pc_A), .out(exe_pc_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
     Nbit_reg #(16, 16'h8200) exe_insn_reg_A (.in(decode_insn_A), .out(exe_insn_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
@@ -343,7 +343,7 @@ module lc4_processor
     wire [15:0] mem_oresult_insn_A, mem_icurdmemdata_A, mem_pcplus1_A, mem_pc_A, mem_insn_A, mem_odmemaddr_A, mem_odmemtowrite_A, mem_rs_data_A, mem_rt_data_A, o_dmem_addr_A, o_dmem_towrite_A;
     wire [2:0] mem_ird_A, mem_irs_A, mem_irt_A;
     
-    Nbit_reg #(1, 1'h0) mem_stall_A (.in(exe_stall_A), .out(mem_stall_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
+    Nbit_reg #(1, 1'h0) mem_stall_reg_A (.in(exe_stall_A), .out(mem_stall_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
 
     Nbit_reg #(16, 16'h8200) mem_pc_reg_A (.in(exe_pc_A), .out(mem_pc_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
     Nbit_reg #(16, 16'h8200) mem_insn_reg_A (.in(exe_insn_A), .out(mem_insn_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
@@ -418,7 +418,7 @@ module lc4_processor
     wire wri_irdwe_A, wri_odmemwe_A, wri_nzpwe_A, wri_isbranch_A, wri_iscontroinsn_A, wri_isload_insn_A, wri_selpcplusone_insn_A, wri_stall_A;
     wire [2:0] wri_ird_A, wri_irs_A, wri_irt_A;
 
-    Nbit_reg #(1, 1'h0) wri_stall_A (.in(mem_stall_A), .out(wri_stall_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
+    Nbit_reg #(1, 1'h0) wri_stall_reg_A (.in(mem_stall_A), .out(wri_stall_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
 
 
     Nbit_reg #(16, 16'h8200) wri_pc_reg_A (.in(mem_pc_A), .out(wri_pc_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
