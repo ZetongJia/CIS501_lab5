@@ -399,10 +399,11 @@ module lc4_processor
 
 
         //NOTE NO BYPASS FOR B!
-        assign o_dmem_towrite_B = ((mem_isstore_insn_B) && (wri_ird_B == mem_irt_B)) ? wri_iwdata_B : 
-                                   (mem_isstore_insn_A ? mem_rt_data_A : 'b0000);
-        assign o_dmem_addr_A = ((mem_isload_insn_A || mem_isstore_insn_A) ? mem_oresult_insn_A : 'b0000);
-        assign o_dmem_we_A = mem_isstore_insn_A ? 1 : 0;
+        assign o_dmem_towrite_B = ((mem_isstore_insn_B) && (wri_ird_B == mem_irt_B)) ? wri_iwdata_B :
+                                    (((mem_isstore_insn_B) && (wri_ird_A == mem_irt_B)) ? wri_iwdata_A : 
+                                   (mem_isstore_insn_B ? mem_rt_data_B : 'b0000));
+        assign o_dmem_addr_B = ((mem_isload_insn_B || mem_isstore_insn_B) ? mem_oresult_insn_B : 'b0000);
+        assign o_dmem_we_B = mem_isstore_insn_B ? 1 : 0;
 
         // assign o_dmem_we = (o_dmem_we_A || o_dmem_we_B)? 1 : 0;
         // assign o_dmem_addr = (o_dmem_addr_A != 'b0000) ? o_dmem_addr_A : ((o_dmem_addr_B != 'b0000) ? o_dmem_addr_B:0);
