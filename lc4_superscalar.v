@@ -96,10 +96,8 @@ module lc4_processor
 
     // Fetch Program counter register
     Nbit_reg #(16, 16'h8200) fetch_pc_reg_A (.in(next_pc_A), .out(fetch_pc_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
-    Nbit_reg #(16, 16'h8200) fetch_pcplus1_reg_A (.in(pc_plus1_A), .out(fetch_pcplus1_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
     
     Nbit_reg #(16, 16'h8200) fetch_pc_reg_B (.in(next_pc_B), .out(fetch_pc_B), .clk(clk), .we(fetch_we), .gwe(gwe), .rst(rst));
-    Nbit_reg #(16, 16'h8200) fetch_pcplus1_reg_B (.in(pc_plus1_B), .out(fetch_pcplus1_B), .clk(clk), .we(fetch_we), .gwe(gwe), .rst(rst));
 
     //The current PC to fetch!
     assign o_cur_pc= fetch_pc_A;
@@ -125,7 +123,7 @@ module lc4_processor
     //***check if branch/NOP/JMP/JMPR/TRAP
     assign branch_result_afterMux_A = (nzp_sel_A == 1) ? wri_oresult_insn_A : pc_plus1_A;
 
-    assign next_pc_A = is_AB_dependent ? (next_pc_A + 1'b1) : (next_pc_A + 2'b10);
+    assign next_pc_A = is_AB_dependent ? (fetch_pc_A + 1'b1) : (fetch_pc_A + 2'b10);
 
     /*****************
     *    BRANCH B.    *
@@ -149,7 +147,7 @@ module lc4_processor
     //***check if branch/NOP/JMP/JMPR/TRAP
     assign branch_result_afterMux_B = (nzp_sel_B == 1) ? wri_oresult_insn_B : pc_plus1_B;
 
-    assign next_pc_B = is_AB_dependent ? (next_pc_B + 1'b1) : (next_pc_B + 2'b10);
+    assign next_pc_B = is_AB_dependent ? (fetch_pc_B + 1'b1) : (fetch_pc_B + 2'b10);
 
     /*******************************
     *            Decode          *
@@ -537,36 +535,46 @@ module lc4_processor
     //   if (next_pc == 16'h820e)
     //      $display("PC: %h, INSN: %h", fetch_pc, i_cur_insn);
 
-    
+    $display("\n ");  
     pinstr(i_cur_insn_A);
-      $display("\n fetch_A PC: %h, i_cur insn: %h, o_rs_data: %h, o_rt_data: %h, i_rd: %h, i_rt: %h, i_rs: %h, cur_select_pc_plus_one: %h, pc_plus1: %h", fetch_pc_A, i_cur_insn_A, o_rs_data_A, o_rt_data_A, i_rd_A, i_rt_A, i_rs_A, select_pc_plus_one_A, pc_plus1_A);  
+    $display("     i_cur_insn_A: %h",  i_cur_insn_A);  
+      $display("\n fetch_A PC: %h, i_cur insn: %h", fetch_pc_A, i_cur_insn_A);  
     pinstr(i_cur_insn_B);
-      $display("\n fetch_B PC: %h, i_cur insn: %h, o_rs_data: %h, o_rt_data: %h, i_rd: %h, i_rt: %h, i_rs: %h, cur_select_pc_plus_one: %h, pc_plus1: %h", fetch_pc_B, i_cur_insn_B, o_rs_data_B, o_rt_data_B, i_rd_B, i_rt_B, i_rs_B, select_pc_plus_one_B, pc_plus1_B);  
+    $display("     i_cur_insn_B: %h", i_cur_insn_B); 
+      $display("\n fetch_B PC: %h, i_cur insn: %h", fetch_pc_B, i_cur_insn_B);  
 
 
     pinstr(decode_insn_A);
-      $display("\n decode_A PC: %h, decode insn: %h, exe o_result: %h, exe_alu_rs_input: %h, exe_alu_rt_input: %h,  decode_rs_data: %h, decode_rt_data: %h, decode_ird: %h, decode_irs: %h, decode_irt: %h, decode_selpcplusone_insn: %h， decode_pcplus1: %h", decode_pc_A, decode_insn_A, o_result_A, exe_alu_rs_input_A, exe_alu_rt_input_A, decode_rs_data_A, decode_rt_data_A, decode_ird_A, decode_irs_A, decode_irt_A, decode_selpcplusone_insn_A, decode_pcplus1_A);  
+    $display("     decode_insn_A: %h", decode_insn_A); 
+      $display("\n decode_A PC: %h, decode insn: %h", decode_pc_A, decode_insn_A);  
     pinstr(decode_insn_B);
-      $display("\n decode_B PC: %h, decode insn: %h, exe o_result: %h, exe_alu_rs_input: %h, exe_alu_rt_input: %h,  decode_rs_data: %h, decode_rt_data: %h, decode_ird: %h, decode_irs: %h, decode_irt: %h, decode_selpcplusone_insn: %h， decode_pcplus1: %h", decode_pc_B, decode_insn_B, o_result_B, exe_alu_rs_input_B, exe_alu_rt_input_B, decode_rs_data_B, decode_rt_data_B, decode_ird_B, decode_irs_B, decode_irt_B, decode_selpcplusone_insn_B, decode_pcplus1_B);  
+    $display("     decode_insn_B: %h", decode_insn_B); 
+      $display("\n decode_B PC: %h, decode insn: %h", decode_pc_B, decode_insn_B);  
 
-      $display("\n \n decode_insn_input_A: %h, decode_insn_input_B: %h,is_AB_dependent: %h, decode_insn_B: %h, i_cur_insn_A: %h, i_cur_insn_B: %h,", decode_insn_input_A, decode_insn_input_B, is_AB_dependent, decode_insn_B, i_cur_insn_A, i_cur_insn_B);
+      $display("\n decode_insn_input_A: %h, decode_insn_input_B: %h,is_AB_dependent: %h, decode_insn_B: %h, i_cur_insn_A: %h, i_cur_insn_B: %h,", decode_insn_input_A, decode_insn_input_B, is_AB_dependent, decode_insn_B, i_cur_insn_A, i_cur_insn_B);
 
 
     pinstr(exe_insn_A);
-      $display("\n exe_A PC: %h, exe insn: %h, mem_oresult_insn: %h,  exe_rs_data: %h, exe_rt_data: %h, exe_ird: %h, exe_irs: %h, exe_irt: %h, o_result： %h, exe_selpcplusone_insn: %h， exe_pcplus1： %h,", exe_pc_A, exe_insn_A, o_result_A, exe_rs_data_A, exe_rt_data_A, exe_ird_A, exe_irs_A, exe_irt_A, o_result_A, exe_selpcplusone_insn_A, exe_pcplus1_A);  
+    $display("     exe_insn_A: %h", exe_insn_A); 
+      $display("\n exe_A PC: %h, exe insn: %h", exe_pc_A, exe_insn_A);  
     pinstr(exe_insn_B);
-      $display("\n exe_B PC: %h, exe insn: %h, mem_oresult_insn: %h,  exe_rs_data: %h, exe_rt_data: %h, exe_ird: %h, exe_irs: %h, exe_irt: %h, o_result： %h, exe_selpcplusone_insn: %h， exe_pcplus1： %h,", exe_pc_B, exe_insn_B, o_result_B, exe_rs_data_B, exe_rt_data_B, exe_ird_B, exe_irs_B, exe_irt_B, o_result_B, exe_selpcplusone_insn_B, exe_pcplus1_B);  
+   $display("     exe_insn_B: %h", exe_insn_B); 
+      $display("\n exe_B PC: %h, exe insn: %h", exe_pc_B, exe_insn_B);  
 
 
     pinstr(mem_insn_A);
-      $display("\n mem_A PC: %h, mem insn: %h, wri_wdata: %h, wri_selpcplusone_insn: %h, wri_pcplus1: %h, wri_isload_insn: %h, wri_icurdmemdata: %h, mem_oresult_insn: %h,  mem_rs_data: %h, mem_rt_data: %h, mem_ird: %h, mem_irs: %h, mem_irt: %h, ", mem_pc_A, mem_insn_A, wri_iwdata_A, mem_selpcplusone_insn_A, mem_pcplus1_A, mem_isload_insn_A, mem_icurdmemdata_A, mem_oresult_insn_A, mem_rs_data_A, mem_rt_data_A, mem_ird_A, mem_irs_A, mem_irt_A);  
+    $display("     mem_insn_A: %h", mem_insn_A); 
+      $display("\n mem_A PC: %h, mem insn: %h", mem_pc_A, mem_insn_A);  
     pinstr(mem_insn_B);
-      $display("\n mem_B PC: %h, mem insn: %h, wri_wdata: %h, wri_selpcplusone_insn: %h, wri_pcplus1: %h, wri_isload_insn: %h, wri_icurdmemdata: %h, mem_oresult_insn: %h,  mem_rs_data: %h, mem_rt_data: %h, mem_ird: %h, mem_irs: %h, mem_irt: %h, ", mem_pc_B, mem_insn_B, wri_iwdata_B, mem_selpcplusone_insn_B, mem_pcplus1_B, mem_isload_insn_B, mem_icurdmemdata_B, mem_oresult_insn_B, mem_rs_data_B, mem_rt_data_B, mem_ird_B, mem_irs_B, mem_irt_B);  
+    $display("     mem_insn_B: %h", mem_insn_B); 
+      $display("\n mem_B PC: %h, mem insn: %h", mem_pc_B, mem_insn_B);  
 
     pinstr(wri_insn_A);
-      $display("\n (current round A)wri PC: %h, wri insn: %h, wri_wdata: %h, wri_selpcplusone_insn: %h, wri_pcplus1: %h, wri_isload_insn: %h, wri_icurdmemdata: %h, wri_oresult_insn: %h,  wri_rs_data: %h, wri_rt_data: %h, wri_ird: %h, wri_irs: %h, wri_irt: %h", wri_pc_A, wri_insn_A, wri_iwdata_A, wri_selpcplusone_insn_A, wri_pcplus1_A, wri_isload_insn_A, wri_icurdmemdata_A, wri_oresult_insn_A, wri_rs_data_A, wri_rt_data_A, wri_ird_A, wri_irs_A, wri_irt_A);  
+    $display("     wri_insn_A: %h", wri_insn_A); 
+      $display("\n wri PC: %h, wri insn: %h", wri_pc_A, wri_insn_A);  
     pinstr(wri_insn_B);
-      $display("\n (current round B)wri PC: %h, wri insn: %h, wri_wdata: %h, wri_selpcplusone_insn: %h, wri_pcplus1: %h, wri_isload_insn: %h, wri_icurdmemdata: %h, wri_oresult_insn: %h,  wri_rs_data: %h, wri_rt_data: %h, wri_ird: %h, wri_irs: %h, wri_irt: %h", wri_pc_B, wri_insn_B, wri_iwdata_B, wri_selpcplusone_insn_B, wri_pcplus1_B, wri_isload_insn_B, wri_icurdmemdata_B, wri_oresult_insn_B, wri_rs_data_B, wri_rt_data_B, wri_ird_B, wri_irs_B, wri_irt_B);  
+    $display("     wri_insn_B: %h", wri_insn_B); 
+      $display("\n wri PC: %h, wri insn: %h", wri_pc_B, wri_insn_B);  
 
 
 // , wri_selpcplusone_insn: %h, wri_pcplus1: %h,  
