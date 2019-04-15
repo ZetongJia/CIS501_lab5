@@ -39,32 +39,42 @@ module lc4_regfile_ss #(parameter n = 16)
     wire[15:0] reg1_in, reg2_in, reg3_in, reg4_in, reg5_in, reg6_in, reg7_in, reg8_in;
     wire[n-1:0] reg1_out, reg2_out, reg3_out, reg4_out, reg5_out, reg6_out, reg7_out, reg8_out;
 
-    assign reg1_we = (i_rd_B == 'b000) ? (i_rd_we_B == 1) :
-                      ((i_rd_A == 'b000 && i_rd_A != i_rd_B) ? (i_rd_we_A == 1): 0);
-    assign reg2_we = (i_rd_B == 'b001) ? (i_rd_we_B == 1) :
-                      ((i_rd_A == 'b001 && i_rd_A != i_rd_B) ? (i_rd_we_A == 1): 0);
-    assign reg3_we = (i_rd_B == 'b010) ? (i_rd_we_B == 1) :
-                      ((i_rd_A == 'b010 && i_rd_A != i_rd_B) ? (i_rd_we_A == 1): 0);
-    assign reg4_we = (i_rd_B == 'b011) ? (i_rd_we_B == 1) :
-                      ((i_rd_A == 'b011 && i_rd_A != i_rd_B) ? (i_rd_we_A == 1): 0);
-    assign reg5_we = (i_rd_B == 'b100) ? (i_rd_we_B == 1) :
-                      ((i_rd_A == 'b100 && i_rd_A != i_rd_B) ? (i_rd_we_A == 1): 0);
-    assign reg6_we = (i_rd_B == 'b101) ? (i_rd_we_B == 1) :
-                      ((i_rd_A == 'b101 && i_rd_A != i_rd_B) ? (i_rd_we_A == 1): 0);
-    assign reg7_we = (i_rd_B == 'b110) ? (i_rd_we_B == 1) :
-                      ((i_rd_A == 'b110 && i_rd_A != i_rd_B) ? (i_rd_we_A == 1): 0);
-    assign reg8_we = (i_rd_B == 'b111) ? (i_rd_we_B == 1) :
-                      ((i_rd_A == 'b111 && i_rd_A != i_rd_B) ? (i_rd_we_A == 1): 0);
+    assign reg1_we = (((i_rd_B == 'b000) && (i_rd_we_B == 1)) || ((i_rd_A == 'b000) && (i_rd_we_A == 1))) ? 1 : 0;
+    assign reg2_we = (((i_rd_B == 'b001) && (i_rd_we_B == 1)) || ((i_rd_A == 'b001) && (i_rd_we_A == 1))) ? 1 : 0;
+    assign reg3_we = (((i_rd_B == 'b010) && (i_rd_we_B == 1)) || ((i_rd_A == 'b010) && (i_rd_we_A == 1))) ? 1 : 0;
+    assign reg4_we = (((i_rd_B == 'b011) && (i_rd_we_B == 1)) || ((i_rd_A == 'b011) && (i_rd_we_A == 1))) ? 1 : 0;
+    assign reg5_we = (((i_rd_B == 'b100) && (i_rd_we_B == 1)) || ((i_rd_A == 'b100) && (i_rd_we_A == 1))) ? 1 : 0;
+    assign reg6_we = (((i_rd_B == 'b101) && (i_rd_we_B == 1)) || ((i_rd_A == 'b101) && (i_rd_we_A == 1))) ? 1 : 0;
+    assign reg7_we = (((i_rd_B == 'b110) && (i_rd_we_B == 1)) || ((i_rd_A == 'b110) && (i_rd_we_A == 1))) ? 1 : 0;
+    assign reg8_we = (((i_rd_B == 'b111) && (i_rd_we_B == 1)) || ((i_rd_A == 'b111) && (i_rd_we_A == 1))) ? 1 : 0;
+
+
+    // assign reg1_we = (i_rd_B == 'b000) ? (i_rd_we_B == 1) :
+    //                   ((i_rd_A == 'b000 && i_rd_A != i_rd_B) ? (i_rd_we_A == 1): 0);
+    // assign reg2_we = (i_rd_B == 'b001) ? (i_rd_we_B == 1) :
+    //                   ((i_rd_A == 'b001 && i_rd_A != i_rd_B) ? (i_rd_we_A == 1): 0);
+    // assign reg3_we = (i_rd_B == 'b010) ? (i_rd_we_B == 1) :
+    //                   ((i_rd_A == 'b010 && i_rd_A != i_rd_B) ? (i_rd_we_A == 1): 0);
+    // assign reg4_we = (i_rd_B == 'b011) ? (i_rd_we_B == 1) :
+    //                   ((i_rd_A == 'b011 && i_rd_A != i_rd_B) ? (i_rd_we_A == 1): 0);
+    // assign reg5_we = (i_rd_B == 'b100) ? (i_rd_we_B == 1) :
+    //                   ((i_rd_A == 'b100 && i_rd_A != i_rd_B) ? (i_rd_we_A == 1): 0);
+    // assign reg6_we = (i_rd_B == 'b101) ? (i_rd_we_B == 1) :
+    //                   ((i_rd_A == 'b101 && i_rd_A != i_rd_B) ? (i_rd_we_A == 1): 0);
+    // assign reg7_we = (i_rd_B == 'b110) ? (i_rd_we_B == 1) :
+    //                   ((i_rd_A == 'b110 && i_rd_A != i_rd_B) ? (i_rd_we_A == 1): 0);
+    // assign reg8_we = (i_rd_B == 'b111) ? (i_rd_we_B == 1) :
+    //                   ((i_rd_A == 'b111 && i_rd_A != i_rd_B) ? (i_rd_we_A == 1): 0);
 
     //data to put into each register
-    assign reg1_in = (i_rd_B == 'b000) ? i_wdata_B : i_wdata_A;
-    assign reg2_in = (i_rd_B == 'b001) ? i_wdata_B : i_wdata_A;
-    assign reg3_in = (i_rd_B == 'b010) ? i_wdata_B : i_wdata_A;
-    assign reg4_in = (i_rd_B == 'b011) ? i_wdata_B : i_wdata_A;
-    assign reg5_in = (i_rd_B == 'b100) ? i_wdata_B : i_wdata_A;
-    assign reg6_in = (i_rd_B == 'b101) ? i_wdata_B : i_wdata_A;
-    assign reg7_in = (i_rd_B == 'b110) ? i_wdata_B : i_wdata_A;
-    assign reg8_in = (i_rd_B == 'b111) ? i_wdata_B : i_wdata_A;
+    assign reg1_in = ((i_rd_B == 'b000) && (i_rd_we_B == 1)) ? i_wdata_B : i_wdata_A;
+    assign reg2_in = ((i_rd_B == 'b001) && (i_rd_we_B == 1)) ? i_wdata_B : i_wdata_A;
+    assign reg3_in = ((i_rd_B == 'b010) && (i_rd_we_B == 1)) ? i_wdata_B : i_wdata_A;
+    assign reg4_in = ((i_rd_B == 'b011) && (i_rd_we_B == 1)) ? i_wdata_B : i_wdata_A;
+    assign reg5_in = ((i_rd_B == 'b100) && (i_rd_we_B == 1)) ? i_wdata_B : i_wdata_A;
+    assign reg6_in = ((i_rd_B == 'b101) && (i_rd_we_B == 1)) ? i_wdata_B : i_wdata_A;
+    assign reg7_in = ((i_rd_B == 'b110) && (i_rd_we_B == 1)) ? i_wdata_B : i_wdata_A;
+    assign reg8_in = ((i_rd_B == 'b111) && (i_rd_we_B == 1)) ? i_wdata_B : i_wdata_A;
 
 
     Nbit_reg #(.n(16), .r(0)) reg1(.in(reg1_in), .out(reg1_out), .clk(clk), .we(reg1_we), .gwe(gwe), .rst(rst));
@@ -77,23 +87,25 @@ module lc4_regfile_ss #(parameter n = 16)
     Nbit_reg #(.n(16), .r(0)) reg8(.in(reg8_in), .out(reg8_out), .clk(clk), .we(reg8_we), .gwe(gwe), .rst(rst));
 
     //A is normal
-    assign o_rs_data_A = (i_rs_A == i_rd_A && i_rd_we_A) ? i_wdata_A :
+    assign o_rs_data_A = (i_rs_A == i_rd_B && i_rd_we_B) ? i_wdata_B : 
+                        ((i_rs_A == i_rd_A && i_rd_we_A) ? i_wdata_A :
                         ((i_rs_A == 'b000) ? reg1_out : 
                         ((i_rs_A == 'b001) ? reg2_out : 
                         ((i_rs_A == 'b010) ? reg3_out : 
                         ((i_rs_A == 'b011) ? reg4_out : 
                         ((i_rs_A == 'b100) ? reg5_out : 
                         ((i_rs_A == 'b101) ? reg6_out : 
-                        ((i_rs_A == 'b110) ? reg7_out : reg8_out)))))));
+                        ((i_rs_A == 'b110) ? reg7_out : reg8_out))))))));
 
-    assign o_rt_data_A = (i_rt_A == i_rd_A && i_rd_we_A) ? i_wdata_A :
+    assign o_rt_data_A = (i_rt_A == i_rd_B && i_rd_we_B) ? i_wdata_B :  
+                        ((i_rt_A == i_rd_A && i_rd_we_A) ? i_wdata_A :
                         ((i_rt_A == 'b000) ? reg1_out : 
                         ((i_rt_A == 'b001) ? reg2_out : 
                         ((i_rt_A == 'b010) ? reg3_out : 
                         ((i_rt_A == 'b011) ? reg4_out : 
                         ((i_rt_A == 'b100) ? reg5_out : 
                         ((i_rt_A == 'b101) ? reg6_out : 
-                        ((i_rt_A == 'b110) ? reg7_out : reg8_out)))))));
+                        ((i_rt_A == 'b110) ? reg7_out : reg8_out))))))));
 
     // If B get data from places where A wrote on first but then B wrote on, we'd want the data A wrote
     assign o_rs_data_B = (i_rs_B == i_rd_B && i_rd_we_B) ? i_wdata_B :

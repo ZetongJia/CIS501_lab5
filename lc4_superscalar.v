@@ -600,10 +600,12 @@ module lc4_processor
 
       $display("\n stat1 : %h, stat2: %h \n", (decode_ird_A == decode_irt_B && (!decode_check_rt_B)), (decode_ird_A == decode_irs_B && (!decode_check_rt_B)));
 
+
     pinstr(exe_insn_A);
-      $display("\n exe_A PC: %h, exe insn: %h, mem_oresult_insn: %h,  exe_rs_data: %h, exe_rt_data: %h, exe_ird: %h, exe_irs: %h, exe_irt: %h, o_result： %h, exe_selpcplusone_insn: %h， exe_pcplus1： %h, exe_alu_rs_input_A: %h,  exe_alu_rt_input_A: %h ", exe_pc_A, exe_insn_A, o_result_A, exe_rs_data_A, exe_rt_data_A, exe_ird_A, exe_irs_A, exe_irt_A, o_result_A, exe_selpcplusone_insn_A, exe_pcplus1_A, exe_alu_rs_input_A, exe_alu_rt_input_A);  
+      $display("\n exe_A PC: %h, exe insn: %h, mem_oresult_insn: %h,  exe_rs_data: %h, exe_rt_data: %h, exe_ird: %h, exe_irs: %h, exe_irt: %h, o_result： %h, exe_selpcplusone_insn: %h， exe_pcplus1： %h, exe_alu_rs_input_A: %h,  exe_alu_rt_input_A: %h, mem_B_BP: %h,  mem_A_BP: %h, wri_B_BP: %h, wri_A_BP: %h, mem_oresult_insn_B: %h, mem_oresult_insn_A: %h, wri_iwdata_B: %h, wri_iwdata_A: %h", exe_pc_A, exe_insn_A, o_result_A, exe_rs_data_A, exe_rt_data_A, exe_ird_A, exe_irs_A, exe_irt_A, o_result_A, exe_selpcplusone_insn_A, exe_pcplus1_A, exe_alu_rs_input_A, exe_alu_rt_input_A, 
+                                                                                                                                                                                                ((exe_irs_A == mem_ird_B) && mem_irdwe_B), ((exe_irs_A == mem_ird_A) && mem_irdwe_A), ((exe_irs_A == wri_ird_B) && wri_irdwe_B), ((exe_irs_A == wri_ird_A) && wri_irdwe_A), mem_oresult_insn_B, mem_oresult_insn_A, wri_iwdata_B, wri_iwdata_A);  
     pinstr(exe_insn_B);
-      $display("\n exe_B PC: %h, exe insn: %h, mem_oresult_insn: %h,  exe_rs_data: %h, exe_rt_data: %h, exe_ird: %h, exe_irs: %h, exe_irt: %h, o_result： %h, exe_selpcplusone_insn: %h， exe_pcplus1： %h, exe_alu_rt_input_B:%h, exe_alu_rt_input_A:%h ", exe_pc_B, exe_insn_B, o_result_B, exe_rs_data_B, exe_rt_data_B, exe_ird_B, exe_irs_B, exe_irt_B, o_result_B, exe_selpcplusone_insn_B, exe_pcplus1_B, exe_alu_rs_input_B, exe_alu_rt_input_B);  
+      $display("\n exe_B PC: %h, exe insn: %h, mem_oresult_insn: %h,  exe_rs_data: %h, exe_rt_data: %h, exe_ird: %h, exe_irs: %h, exe_irt: %h, o_result： %h, exe_selpcplusone_insn: %h， exe_pcplus1： %h, exe_alu_rt_input_B:%h, exe_alu_rt_input_B:%h ", exe_pc_B, exe_insn_B, o_result_B, exe_rs_data_B, exe_rt_data_B, exe_ird_B, exe_irs_B, exe_irt_B, o_result_B, exe_selpcplusone_insn_B, exe_pcplus1_B, exe_alu_rs_input_B, exe_alu_rt_input_B);  
 
 
     pinstr(mem_insn_A);
