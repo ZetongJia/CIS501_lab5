@@ -213,7 +213,9 @@ module lc4_processor
     wire [1:0] decode_SSstall_input_B, decode_stall_B, decode_stall_A; 
     wire [15:0] decode_pc_input_A, decode_pc_input_B;
 
-    assign is_AB_dependent = !decode_check_rd_A && ((decode_ird_A == decode_irt_B && (!decode_check_rt_B)) || (decode_ird_A == decode_irs_B && (!decode_check_rs_B)));
+    assign is_AB_dependent = (!decode_check_rd_A && ((decode_ird_A == decode_irt_B && !decode_check_rt_B) 
+                                                    || (decode_ird_A == decode_irs_B && !decode_check_rs_B)))
+                              || ((decode_isload_insn_A || decode_isstore_insn_A) && (decode_isstore_insn_B || decode_isload_insn_B));
 
     assign decode_insn_input_A = is_AB_dependent ? decode_insn_B : i_cur_insn_A; 
     assign decode_insn_input_B = is_AB_dependent ? i_cur_insn_A : i_cur_insn_B; 
