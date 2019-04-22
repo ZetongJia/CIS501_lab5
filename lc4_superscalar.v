@@ -441,16 +441,53 @@ module lc4_processor
         *     WM BYPASS   *
         **********************/
 
-        assign o_dmem_towrite_A = ((mem_isstore_insn_A) && (wri_ird_B == mem_irt_A)) ? wri_iwdata_B :
-                                   (((mem_isstore_insn_A) && (wri_ird_A == mem_irt_A)) ? wri_iwdata_A : 
+        //**** this is if we DONT want to check rs/rt/rd
+        wire mem_check_rt_A, mem_check_rt_B, wri_check_rd_B, wri_check_rd_A;
+        assign wri_check_rd_A = wri_insn_A[15:12]=='b0000 || wri_isstore_insn_A
+                                              || wri_insn_A[15:12]=='b0010
+                                              || wri_insn_A[15:12]=='b0100
+                                              || wri_insn_A[15:12]=='b1100
+                                              || wri_insn_A[15:12]=='b1111
+                                              || wri_insn_A[15:12]=='b1000;
+        assign mem_check_rt_A = mem_isstore_insn_A || mem_isload_insn_A
+                                              || (mem_insn_A[15:12]=='b0001 && mem_insn_A[5]=='b1)
+                                              || (mem_insn_A[15:12]=='b0010 && (mem_insn_A[8:7] == 'b10 || mem_insn_A[8:7] == 'b11))
+                                              || (mem_insn_A[15:12]=='b0101 && (mem_insn_A[5:3] == 'b001 || mem_insn_A[5] == 'b1))
+                                              || (mem_insn_A[15:12]=='b1001)
+                                              || (mem_insn_A[15:12]=='b1010 && (mem_insn_A[5:4] != 'b11))
+                                              || mem_insn_A[15:12] == 'b1101
+                                              || mem_insn_A[15:12] == 'b1001
+                                              || mem_insn_A[15:12] == 'b0100
+                                              || mem_insn_A[15:12] == 'b1100
+                                              || mem_insn_A == 16'h8200;
+        assign wri_check_rd_B = wri_insn_B[15:12]=='b0000 || wri_isstore_insn_B
+                                              || wri_insn_B[15:12]=='b0010
+                                              || wri_insn_B[15:12]=='b0100
+                                              || wri_insn_B[15:12]=='b1100
+                                              || wri_insn_B[15:12]=='b1111
+                                              || wri_insn_B[15:12]=='b1000;
+        assign mem_check_rt_B = mem_isstore_insn_B || mem_isload_insn_B
+                                              || (mem_insn_B[15:12]=='b0001 && mem_insn_B[5]=='b1)
+                                              || (mem_insn_B[15:12]=='b0010 && (mem_insn_B[8:7] == 'b10 || mem_insn_B[8:7] == 'b11))
+                                              || (mem_insn_B[15:12]=='b0101 && (mem_insn_B[5:3] == 'b001 || mem_insn_B[5] == 'b1))
+                                              || (mem_insn_B[15:12]=='b1001)
+                                              || (mem_insn_B[15:12]=='b1010 && (mem_insn_B[5:4] != 'b11))
+                                              || mem_insn_B[15:12] == 'b1101
+                                              || mem_insn_B[15:12] == 'b1001
+                                              || mem_insn_B[15:12] == 'b0100
+                                              || mem_insn_B[15:12] == 'b1100
+                                              || mem_insn_B == 16'h8200;
+
+        assign o_dmem_towrite_A = ((mem_isstore_insn_A) && (wri_ird_B == mem_irt_A) && !mem_check_rt_A && !wri_check_rd_B) ? wri_iwdata_B :
+                                   (((mem_isstore_insn_A) && (wri_ird_A == mem_irt_A) && !mem_check_rt_A && !wri_check_rd_A) ? wri_iwdata_A : 
                                    (mem_isstore_insn_A ? mem_rt_data_A : 'b0000));
         assign o_dmem_addr_A = ((mem_isload_insn_A || mem_isstore_insn_A) ? mem_oresult_insn_A : 'b0000);
         assign o_dmem_we_A = mem_isstore_insn_A;
 
 
         //NOTE NO BYPASS FOR B!
-        assign o_dmem_towrite_B = ((mem_isstore_insn_B) && (wri_ird_B == mem_irt_B)) ? wri_iwdata_B :
-                                    (((mem_isstore_insn_B) && (wri_ird_A == mem_irt_B)) ? wri_iwdata_A : 
+        assign o_dmem_towrite_B = ((mem_isstore_insn_B) && (wri_ird_B == mem_irt_B) && !mem_check_rt_B && !wri_check_rd_B) ? wri_iwdata_B :
+                                    (((mem_isstore_insn_B) && (wri_ird_A == mem_irt_B)  && !mem_check_rt_B && !wri_check_rd_A) ? wri_iwdata_A : 
                                    (mem_isstore_insn_B ? mem_rt_data_B : 'b0000));
         assign o_dmem_addr_B = ((mem_isload_insn_B || mem_isstore_insn_B) ? mem_oresult_insn_B : 'b0000);
         assign o_dmem_we_B = mem_isstore_insn_B;
@@ -464,7 +501,7 @@ module lc4_processor
     *******************************/     
 
     wire [15:0] wri_iwdata_A, wri_pc_A, wri_insn_A, wri_odmemaddr_A, wri_odmemtowrite_A, wri_icurdmemdata_A, wri_rs_data_A, wri_rt_data_A, wri_pcplus1_A, wri_oresult_insn_A;
-    wire wri_irdwe_A, wri_odmemwe_A, wri_nzpwe_A, wri_isbranch_A, wri_iscontroinsn_A, wri_isload_insn_A, wri_selpcplusone_insn_A;
+    wire wri_irdwe_A, wri_odmemwe_A, wri_nzpwe_A, wri_isbranch_A, wri_iscontroinsn_A, wri_isload_insn_A, wri_isstore_insn_A, wri_selpcplusone_insn_A;
     wire [2:0] wri_ird_A, wri_irs_A, wri_irt_A;
     wire [1:0] wri_stall_A;
     
@@ -482,7 +519,7 @@ module lc4_processor
     Nbit_reg #(3, 16'h8200) wri_irt_reg_A (.in(mem_irt_A), .out(wri_irt_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
     
     Nbit_reg #(1, 16'h8200) wri_odmemwe_reg_A (.in(o_dmem_we_A), .out(wri_odmemwe_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
-    Nbit_reg #(16, 16'h8200) wri_odmemaddr_reg_A (.in(o_dmem_addr), .out(wri_odmemaddr_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
+    Nbit_reg #(16, 16'h8200) wri_odmemaddr_reg_A (.in(o_dmem_addr_A), .out(wri_odmemaddr_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
     Nbit_reg #(16, 16'h8200) wri_odmemtowrite_reg_A (.in(o_dmem_towrite_A), .out(wri_odmemtowrite_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
     Nbit_reg #(16, 16'h8200) wri_icurdmemdata_reg_A (.in(i_cur_dmem_data), .out(wri_icurdmemdata_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
     Nbit_reg #(16, 16'h8200) wri_rs_reg_A (.in(mem_rs_data_A), .out(wri_rs_data_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
@@ -492,6 +529,7 @@ module lc4_processor
     Nbit_reg #(1, 16'h8200) wri_isbranch_reg_A (.in(mem_isbranch_A), .out(wri_isbranch_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
     Nbit_reg #(1, 16'h8200) wri_iscontroinsn_reg_A (.in(mem_iscontroinsn_A), .out(wri_iscontroinsn_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
     Nbit_reg #(1, 16'h8200) wri_isload_reg_A (.in(mem_isload_insn_A), .out(wri_isload_insn_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
+    Nbit_reg #(1, 16'h8200) wri_isstore_reg_A (.in(mem_isstore_insn_B), .out(wri_isstore_insn_B), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
     Nbit_reg #(16, 16'h8200) wri_oresult_reg_A (.in(mem_oresult_insn_A), .out(wri_oresult_insn_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
     Nbit_reg #(1, 16'h8200) wri_selpcplusone_reg_A (.in(mem_selpcplusone_insn_A), .out(wri_selpcplusone_insn_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
 
@@ -503,7 +541,7 @@ module lc4_processor
     *******************************/     
 
     wire [15:0] wri_iwdata_B, wri_pc_B, wri_insn_B, wri_odmemaddr_B, wri_odmemtowrite_B, wri_icurdmemdata_B, wri_rs_data_B, wri_rt_data_B, wri_pcplus1_B, wri_oresult_insn_B;
-    wire wri_irdwe_B, wri_odmemwe_B, wri_nzpwe_B, wri_isbranch_B, wri_iscontroinsn_B, wri_isload_insn_B, wri_selpcplusone_insn_B;
+    wire wri_irdwe_B, wri_odmemwe_B, wri_nzpwe_B, wri_isbranch_B, wri_iscontroinsn_B, wri_isload_insn_B, wri_isstore_insn_B, wri_selpcplusone_insn_B;
     wire [2:0] wri_ird_B, wri_irs_B, wri_irt_B;
     wire [1:0] wri_stall_B;
 
@@ -518,7 +556,7 @@ module lc4_processor
     Nbit_reg #(3, 16'h8200) wri_irt_reg_B (.in(mem_irt_B), .out(wri_irt_B), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
     
     Nbit_reg #(1, 16'h8200) wri_odmemwe_reg_B (.in(o_dmem_we_B), .out(wri_odmemwe_B), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
-    Nbit_reg #(16, 16'h8200) wri_odmemaddr_reg_B (.in(o_dmem_addr), .out(wri_odmemaddr_B), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
+    Nbit_reg #(16, 16'h8200) wri_odmemaddr_reg_B (.in(o_dmem_addr_B), .out(wri_odmemaddr_B), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
     Nbit_reg #(16, 16'h8200) wri_odmemtowrite_reg_B (.in(o_dmem_towrite_B), .out(wri_odmemtowrite_B), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
     Nbit_reg #(16, 16'h8200) wri_icurdmemdata_reg_B (.in(i_cur_dmem_data), .out(wri_icurdmemdata_B), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
     Nbit_reg #(16, 16'h8200) wri_rs_reg_B (.in(mem_rs_data_B), .out(wri_rs_data_B), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
@@ -528,6 +566,7 @@ module lc4_processor
     Nbit_reg #(1, 16'h8200) wri_isbranch_reg_B (.in(mem_isbranch_B), .out(wri_isbranch_B), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
     Nbit_reg #(1, 16'h8200) wri_iscontroinsn_reg_B (.in(mem_iscontroinsn_B), .out(wri_iscontroinsn_B), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
     Nbit_reg #(1, 16'h8200) wri_isload_reg_B (.in(mem_isload_insn_B), .out(wri_isload_insn_B), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
+    Nbit_reg #(1, 16'h8200) wri_isstore_reg_B (.in(mem_isstore_insn_B), .out(wri_isstore_insn_B), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
     Nbit_reg #(16, 16'h8200) wri_oresult_reg_B (.in(mem_oresult_insn_B), .out(wri_oresult_insn_B), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
     Nbit_reg #(1, 16'h8200) wri_selpcplusone_reg_B (.in(mem_selpcplusone_insn_B), .out(wri_selpcplusone_insn_B), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
 
@@ -600,20 +639,19 @@ module lc4_processor
 
       $display("\n decode_insn_input_A: %h, decode_insn_input_B: %h, is_AB_dependent: %h, decode_insn_B: %h, i_cur_insn_A: %h, i_cur_insn_B: %h, decode_check_rs_B: %h, decode_check_rt_B: %h \n ", decode_insn_input_A, decode_insn_input_B, is_AB_dependent, decode_insn_B, i_cur_insn_A, i_cur_insn_B, decode_check_rs_B, decode_check_rt_B);
 
-      $display("\n stat1 : %h, stat2: %h \n", (decode_ird_A == decode_irt_B && (!decode_check_rt_B)), (decode_ird_A == decode_irs_B && (!decode_check_rt_B)));
-
-
     pinstr(exe_insn_A);
       $display("\n exe_A PC: %h, exe insn: %h, mem_oresult_insn: %h,  exe_rs_data: %h, exe_rt_data: %h, exe_ird: %h, exe_irs: %h, exe_irt: %h, o_result： %h, exe_selpcplusone_insn: %h， exe_pcplus1： %h, exe_alu_rs_input_A: %h,  exe_alu_rt_input_A: %h, mem_B_BP: %h,  mem_A_BP: %h, wri_B_BP: %h, wri_A_BP: %h, mem_oresult_insn_B: %h, mem_oresult_insn_A: %h, wri_iwdata_B: %h, wri_iwdata_A: %h", exe_pc_A, exe_insn_A, o_result_A, exe_rs_data_A, exe_rt_data_A, exe_ird_A, exe_irs_A, exe_irt_A, o_result_A, exe_selpcplusone_insn_A, exe_pcplus1_A, exe_alu_rs_input_A, exe_alu_rt_input_A, 
                                                                                                                                                                                                 ((exe_irs_A == mem_ird_B) && mem_irdwe_B), ((exe_irs_A == mem_ird_A) && mem_irdwe_A), ((exe_irs_A == wri_ird_B) && wri_irdwe_B), ((exe_irs_A == wri_ird_A) && wri_irdwe_A), mem_oresult_insn_B, mem_oresult_insn_A, wri_iwdata_B, wri_iwdata_A);  
     pinstr(exe_insn_B);
       $display("\n exe_B PC: %h, exe insn: %h, mem_oresult_insn: %h,  exe_rs_data: %h, exe_rt_data: %h, exe_ird: %h, exe_irs: %h, exe_irt: %h, o_result： %h, exe_selpcplusone_insn: %h， exe_pcplus1： %h, exe_alu_rt_input_B:%h, exe_alu_rt_input_B:%h ", exe_pc_B, exe_insn_B, o_result_B, exe_rs_data_B, exe_rt_data_B, exe_ird_B, exe_irs_B, exe_irt_B, o_result_B, exe_selpcplusone_insn_B, exe_pcplus1_B, exe_alu_rs_input_B, exe_alu_rt_input_B);  
 
-
     pinstr(mem_insn_A);
       $display("\n mem_A PC: %h, mem insn: %h, mem_wdata: %h, mem_selpcplusone_insn: %h, mem_pcplus1: %h, mem_isload_insn: %h, mem_isstore_insn: %h, mem_oresult_insn: %h,  mem_rs_data: %h, mem_rt_data: %h, mem_ird: %h, mem_irs: %h, mem_irt: %h, o_dmem_addr_A : %h, mem_oresult_insn_A : %h ", mem_pc_A, mem_insn_A, wri_iwdata_A, mem_selpcplusone_insn_A, mem_pcplus1_A, mem_isload_insn_A, mem_isstore_insn_A, mem_oresult_insn_A, mem_rs_data_A, mem_rt_data_A, mem_ird_A, mem_irs_A, mem_irt_A, o_dmem_addr_A, mem_oresult_insn_A);  
     pinstr(mem_insn_B);
       $display("\n mem_B PC: %h, mem insn: %h, mem_wdata: %h, mem_selpcplusone_insn: %h, mem_pcplus1: %h, mem_isload_insn: %h, mem_isstore_insn: %h,  mem_oresult_insn: %h,  mem_rs_data: %h, mem_rt_data: %h, mem_ird: %h, mem_irs: %h, mem_irt: %h, o_dmem_addr_B: %h, mem_oresult_insn_B : %h ", mem_pc_B, mem_insn_B, wri_iwdata_B, mem_selpcplusone_insn_B, mem_pcplus1_B, mem_isload_insn_B, mem_isstore_insn_B, mem_oresult_insn_B, mem_rs_data_B, mem_rt_data_B, mem_ird_B, mem_irs_B, mem_irt_B, o_dmem_addr_B, mem_oresult_insn_A);  
+
+      $display("\n condition check: MW bypass I: %h, MW bypass II: %h, store data: %h", ((mem_isstore_insn_A) && (wri_ird_B == mem_irt_A)), ((mem_isstore_insn_A) && (wri_ird_A == mem_irt_A)), mem_isstore_insn_A);
+      $display("o_dmem_towrite: %h",o_dmem_towrite);
 
     pinstr(wri_insn_A);
       $display("\n (current round A)wri PC: %h, wri insn: %h, wri_wdata: %h, wri_selpcplusone_insn: %h, wri_pcplus1: %h, wri_isload_insn: %h, wri_icurdmemdata: %h, wri_oresult_insn: %h,  wri_rs_data: %h, wri_rt_data: %h, wri_ird: %h, wri_irs: %h, wri_irt: %h, wri_odmemaddr_A: %h", wri_pc_A, wri_insn_A, wri_iwdata_A, wri_selpcplusone_insn_A, wri_pcplus1_A, wri_isload_insn_A, wri_icurdmemdata_A, wri_oresult_insn_A, wri_rs_data_A, wri_rt_data_A, wri_ird_A, wri_irs_A, wri_irt_A, wri_odmemaddr_A);  
