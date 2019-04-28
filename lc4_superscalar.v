@@ -270,7 +270,6 @@ module lc4_processor
     Nbit_reg #(1, 16'h8200) decode_isbranch_reg_B (.in(is_branch_B), .out(decode_isbranch_B), .clk(clk), .we(decode_we), .gwe(gwe), .rst(decode_rst));
     Nbit_reg #(1, 16'h8200) decode_iscontroinsn_reg_B (.in(is_control_insn_B), .out(decode_iscontroinsn_B), .clk(clk), .we(decode_we), .gwe(gwe), .rst(decode_rst));
 
-
     /*******************************
     *            Execute A          *
     *******************************/
@@ -411,11 +410,17 @@ module lc4_processor
                           (exe_iscontroinsn_B ? o_result_B:
                             ((exe_isbranch_B & nzp_sel_B) ? branch_result_afterMux_B : pc_plus1_A)));
 
+      //testing wire!
+      wire[2:0] test_next_pc_A;
+      assign test_next_pc_A = exe_iscontroinsn_A ? 'b0 : 
+                        ((exe_isbranch_A & nzp_sel_A) ? 'b1 : 
+                          (exe_iscontroinsn_B ? 'b10:
+                            ((exe_isbranch_B & nzp_sel_B) ? 'b11 : 'b100)));
 
     /*****************
     *    BRANCH B.    *
     ******************/
-     wire[2:0] nzp_3bit_B, i_nzp_new_bits_B;
+    wire[2:0] nzp_3bit_B, i_nzp_new_bits_B;
     wire nzp_sel_B; //0 or 1
     wire[15:0] JSR_op_B; //just for JSR
     wire[15:0] branch_result_afterMux_B, data_to_test_B; 
@@ -467,8 +472,10 @@ module lc4_processor
     
     wire[2:0] nzp_new_bits_A_input; //fun observation: all branch has nzp_new_bits=4 :)
     assign nzp_new_bits_A_input = (exe_isbranch_A || exe_iscontroinsn_A || exe_isstore_insn_A) ? 'b100 : i_nzp_new_bits_A;
-
     Nbit_reg #(3, 3'h8200) mem_nzp_new_reg_A (.in(nzp_new_bits_A_input), .out(mem_nzp_new_bits_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
+
+    // Nbit_reg #(3, 3'h8200) mem_nzp_new_reg_A (.in(i_nzp_new_bits_A), .out(mem_nzp_new_bits_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(mem_rst_B));
+
 
     /*******************************
     *            Memory  B         *
@@ -506,6 +513,7 @@ module lc4_processor
     wire[2:0] nzp_new_bits_B_input;
     assign nzp_new_bits_B_input = (exe_isbranch_B || exe_iscontroinsn_B || exe_isstore_insn_B) ? 'b100 : i_nzp_new_bits_B;
     Nbit_reg #(3, 3'h8200) mem_nzp_new_reg_B (.in(nzp_new_bits_B_input), .out(mem_nzp_new_bits_B), .clk(clk), .we(1'b1), .gwe(gwe), .rst(mem_rst_B));
+    // Nbit_reg #(3, 3'h8200) mem_nzp_new_reg_B (.in(i_nzp_new_bits_B), .out(mem_nzp_new_bits_B), .clk(clk), .we(1'b1), .gwe(gwe), .rst(mem_rst_B));
 
         /*********************
         *     WM BYPASS   *
@@ -725,10 +733,10 @@ module lc4_processor
 
     pinstr(decode_insn_A);
       $display("\n decode_A PC: %h, decode insn: %h, exe o_result: %h, exe_alu_rs_input: %h, exe_alu_rt_input: %h,  decode_ird: %h, decode_irs: %h, decode_irt: %h, decode_selpcplusone_insn: %h， decode_pcplus1: %h, nzp_we: %h", decode_pc_A, decode_insn_A, o_result_A, exe_alu_rs_input_A, exe_alu_rt_input_A, decode_ird_A, decode_irs_A, decode_irt_A, decode_selpcplusone_insn_A, decode_pcplus1_A, decode_nzpwe_A);  
-      $display("decode_stall_A: %h, decode_br_stall_A: %h ", decode_stall_A, decode_br_stall_A);
+      $display("decode_stall_A: %h, decode_br_stall_A: %h, o_result_A: %h ", decode_stall_A, decode_br_stall_A, o_result_A);
     pinstr(decode_insn_B);
       $display("\n decode_B PC: %h, decode insn: %h, exe o_result: %h, exe_alu_rs_input: %h, exe_alu_rt_input: %h,  decode_ird: %h, decode_irs: %h, decode_irt: %h, decode_selpcplusone_insn: %h， decode_pcplus1: %h, nzp_we: %h", decode_pc_B, decode_insn_B, o_result_B, exe_alu_rs_input_B, exe_alu_rt_input_B, decode_ird_B, decode_irs_B, decode_irt_B, decode_selpcplusone_insn_B, decode_pcplus1_B, decode_nzpwe_B);  
-      $display("decode_stall_B: %h, decode_br_stall_B: %h ", decode_stall_B, decode_br_stall_B);
+      $display("decode_stall_B: %h, decode_br_stall_B: %h, o_result_B: %h ", decode_stall_B, decode_br_stall_B, o_result_B);
 
 
       // (!decode_check_rd_A && ((decode_ird_A == decode_irt_B && !decode_check_rt_B) 
@@ -746,7 +754,7 @@ module lc4_processor
     //                       (exe_iscontroinsn_B ? o_result_B:
     //                         ((exe_isbranch_B & nzp_sel_B) ? branch_result_afterMux_B : pc_plus1_A)));
 
-    $display("\n next_pc_A: %h, o_result_A: %h ", next_pc_A, o_result_A);
+    $display("\n next_pc_A: %h, o_result_A: %h, test_next_pc_A: %h ", next_pc_A, branch_result_afterMux_A, test_next_pc_A);
 
     pinstr(exe_insn_A);
       $display("\n exe_A PC: %h, exe insn: %h, mem_oresult_insn: %h,  exe_rs_data: %h, exe_rt_data: %h, exe_ird: %h, exe_irs: %h, exe_irt: %h, o_result： %h, exe_selpcplusone_insn: %h， exe_pcplus1： %h, exe_alu_rs_input_A: %h,  exe_alu_rt_input_A: %h, mem_B_BP: %h,  mem_A_BP: %h, wri_B_BP: %h, wri_A_BP: %h, mem_oresult_insn_B: %h, mem_oresult_insn_A: %h, nzp_we: %h ", exe_pc_A, exe_insn_A, o_result_A, exe_rs_data_A, exe_rt_data_A, exe_ird_A, exe_irs_A, exe_irt_A, o_result_A, exe_selpcplusone_insn_A, exe_pcplus1_A, exe_alu_rs_input_A, exe_alu_rt_input_A, 
