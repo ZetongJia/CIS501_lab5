@@ -207,14 +207,19 @@ module lc4_processor
     assign decode_we = !decode_stall_ltu_sel_A || i_br_stall_A || i_br_stall_B;
     //decode A has a stall so both decode stays
     assign decode_stall_ltu_sel_A = (exe_isload_insn_A && exe_irdwe_A && ((decode_irs_A == exe_ird_A && !decode_check_rs_A) || (decode_irt_A==exe_ird_A && !decode_check_rt_A))) 
-                                    || (exe_isload_insn_A && decode_isbranch_A)
+                                    || (exe_isload_insn_A && decode_isbranch_A && !exe_nzpwe_B)
                                     || (exe_isload_insn_B && exe_irdwe_B && ((decode_irs_A == exe_ird_B && !decode_check_rs_A) || (decode_irt_A==exe_ird_B && !decode_check_rt_A))) 
                                     || (exe_isload_insn_B && decode_isbranch_A);
     //Decode B has a stall so A stays and B scoud over; treat as A and B dependent but need to give B's as LTU
+    // assign decode_stall_ltu_sel_B = (exe_isload_insn_A && exe_irdwe_A && ((decode_irs_B == exe_ird_A && !decode_check_rs_B) || (decode_irt_B==exe_ird_A && !decode_check_rt_B))) 
+    //                                 || (exe_isload_insn_A && decode_isbranch_B)
+    //                                 || (exe_isload_insn_B && exe_irdwe_B && ((decode_irs_B == exe_ird_B && !decode_check_rs_B) || (decode_irt_B==exe_ird_B && !decode_check_rt_B))) 
+    //                                 || (exe_isload_insn_B && decode_isbranch_B);
     assign decode_stall_ltu_sel_B = (exe_isload_insn_A && exe_irdwe_A && ((decode_irs_B == exe_ird_A && !decode_check_rs_B) || (decode_irt_B==exe_ird_A && !decode_check_rt_B))) 
-                                    || (exe_isload_insn_A && decode_isbranch_B)
                                     || (exe_isload_insn_B && exe_irdwe_B && ((decode_irs_B == exe_ird_B && !decode_check_rs_B) || (decode_irt_B==exe_ird_B && !decode_check_rt_B))) 
-                                    || (exe_isload_insn_B && decode_isbranch_B);
+                                    || (decode_isbranch_B && exe_isload_insn_A && !exe_nzpwe_B & !decode_nzpwe_A)
+                                    || (decode_isbranch_B && exe_isload_insn_B && !decode_nzpwe_A)
+                                    || (decode_isbranch_B && decode_isload_insn_A);
 
     /*******************************
     *            BRANCH STALL      *
@@ -689,7 +694,7 @@ module lc4_processor
    assign test_dmem_we_A = wri_odmemwe_A;
    assign test_dmem_addr_A = wri_odmemaddr_A;
    assign test_dmem_data_A = (wri_isload_insn_A) ? wri_icurdmemdata_A : wri_odmemtowrite_A;
-   assign test_stall_A = (wri_stall_A != 0) ? wri_stall_A: (wri_br_stall_A ? 'b10 : 0);
+   assign test_stall_A = wri_br_stall_A ? 'b10 : wri_stall_A;
 
    assign test_cur_pc_B = wri_pc_B;
    assign test_cur_insn_B = wri_insn_B;
@@ -700,7 +705,7 @@ module lc4_processor
    assign test_dmem_addr_B = wri_odmemaddr_B;
    // if load insn then use icurdmemdata
    assign test_dmem_data_B = (wri_isload_insn_B) ? wri_icurdmemdata_B : wri_odmemtowrite_B;
-   assign test_stall_B = (wri_stall_B != 0) ? wri_stall_B: ((wri_br_stall_B || wri_br_stall_A) ? 'b10 : 0);
+   assign test_stall_B = (wri_br_stall_B || wri_br_stall_A) ? 'b10 : wri_stall_B;
 
    wire [2:0] load_nzp_A, load_nzp_B;
    assign test_nzp_we_A = wri_nzpwe_A;
