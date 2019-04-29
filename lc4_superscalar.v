@@ -152,6 +152,9 @@ module lc4_processor
                                           || decode_insn_A[15:12] == 'b1001
                                           || decode_insn_A[15:12] == 'b0100
                                           || decode_insn_A[15:12] == 'b1100
+                                          || decode_insn_A[15:12] == 'b0110
+                                          || decode_insn_A[15:12] == 'b0000
+                                          || decode_insn_A[15:12] == 'b1111
                                           || decode_insn_A == 16'h8200
                                           || decode_insn_A == 16'b0;
     assign decode_check_rt_B = decode_isstore_insn_B || decode_isload_insn_B
@@ -164,11 +167,14 @@ module lc4_processor
                                           || decode_insn_B[15:12] == 'b1001
                                           || decode_insn_B[15:12] == 'b0100
                                           || decode_insn_B[15:12] == 'b1100
+                                          || decode_insn_B[15:12] == 'b0110
+                                          || decode_insn_B[15:12] == 'b0000
+                                          || decode_insn_B[15:12] == 'b1111
                                           || decode_insn_B == 16'h8200
                                           || decode_insn_B == 16'b0;
-    assign decode_check_rs_B = decode_insn_B[15:12] == 'b1001 || decode_insn_B[15:12] == 'b1111 || (decode_insn_B[15:12]=='b0100 && (decode_insn_B[11] == 'b1))
+    assign decode_check_rs_B = decode_insn_B[15:12] == 'b1001 || decode_insn_B[15:12] == 'b0000 || decode_insn_B[15:12] == 'b1111 || (decode_insn_B[15:12]=='b0100 && (decode_insn_B[11] == 'b1))
                                                    || (decode_insn_B[15:12]=='b1100 && (decode_insn_B[11] == 'b1)) || decode_insn_B == 16'h8200 || decode_insn_B == 16'b0;
-    assign decode_check_rs_A = decode_insn_A[15:12] == 'b1001 || decode_insn_A[15:12] == 'b1111 || (decode_insn_A[15:12]=='b0100 && (decode_insn_A[11] == 'b1))
+    assign decode_check_rs_A = decode_insn_A[15:12] == 'b1001 || decode_insn_A[15:12] == 'b0000 || decode_insn_A[15:12] == 'b1111 || (decode_insn_A[15:12]=='b0100 && (decode_insn_A[11] == 'b1))
                                                    || (decode_insn_A[15:12]=='b1100 && (decode_insn_A[11] == 'b1)) || decode_insn_A == 16'h8200 || decode_insn_A == 16'b0;
 
 
@@ -210,6 +216,7 @@ module lc4_processor
                                     || (exe_isload_insn_A && decode_isbranch_A && !exe_nzpwe_B)
                                     || (exe_isload_insn_B && exe_irdwe_B && ((decode_irs_A == exe_ird_B && !decode_check_rs_A) || (decode_irt_A==exe_ird_B && !decode_check_rt_A))) 
                                     || (exe_isload_insn_B && decode_isbranch_A);
+
     //Decode B has a stall so A stays and B scoud over; treat as A and B dependent but need to give B's as LTU
     // assign decode_stall_ltu_sel_B = (exe_isload_insn_A && exe_irdwe_A && ((decode_irs_B == exe_ird_A && !decode_check_rs_B) || (decode_irt_B==exe_ird_A && !decode_check_rt_B))) 
     //                                 || (exe_isload_insn_A && decode_isbranch_B)
@@ -299,6 +306,7 @@ module lc4_processor
     assign exe_rst_A = rst || decode_SSstall_input_A || i_br_stall_A || i_br_stall_B;
     //1st condition to preserve the initial 0
     assign exe_stall_A_input = (decode_stall_A == 'b10)? decode_stall_A : decode_SSstall_input_A;
+    // assign exe_stall_A_input = (decode_SSstall_input_A == 'b1)? decode_SSstall_input_A : decode_stall_A;
 
     //decode stall reg
     Nbit_reg #(2, 2'b10) exe_stall_reg_A (.in(exe_stall_A_input), .out(exe_stall_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst|| i_br_stall_A || i_br_stall_B));
@@ -484,7 +492,8 @@ module lc4_processor
     Nbit_reg #(3, 'b000) mem_irt_reg_A (.in(exe_irt_A), .out(mem_irt_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
     
     wire[2:0] nzp_new_bits_A_input; //fun observation: all branch has nzp_new_bits=4 :)
-    assign nzp_new_bits_A_input = (exe_isbranch_A || exe_iscontroinsn_A || exe_isstore_insn_A) ? 'b100 : i_nzp_new_bits_A;
+    // assign nzp_new_bits_A_input = (exe_isbranch_A || exe_iscontroinsn_A || exe_isstore_insn_A) ? 'b100 : i_nzp_new_bits_A;
+    assign nzp_new_bits_A_input = i_nzp_new_bits_A;
     Nbit_reg #(3, 3'b000) mem_nzp_new_reg_A (.in(nzp_new_bits_A_input), .out(mem_nzp_new_bits_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
 
     // Nbit_reg #(3, 3'h8200) mem_nzp_new_reg_A (.in(i_nzp_new_bits_A), .out(mem_nzp_new_bits_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(mem_rst_B));
@@ -524,10 +533,10 @@ module lc4_processor
     Nbit_reg #(3, 'b000) mem_irt_reg_B (.in(exe_irt_B), .out(mem_irt_B), .clk(clk), .we(1'b1), .gwe(gwe), .rst(mem_rst_B));
 
     wire[2:0] nzp_new_bits_B_input;
-    assign nzp_new_bits_B_input = (exe_isbranch_B || exe_iscontroinsn_B || exe_isstore_insn_B) ? 'b100 : i_nzp_new_bits_B;
+    // assign nzp_new_bits_B_input = (exe_isbranch_B || exe_iscontroinsn_B || exe_isstore_insn_B) ? 'b100 : i_nzp_new_bits_B;
+    assign nzp_new_bits_B_input = i_nzp_new_bits_B;
     Nbit_reg #(3, 3'b000) mem_nzp_new_reg_B (.in(nzp_new_bits_B_input), .out(mem_nzp_new_bits_B), .clk(clk), .we(1'b1), .gwe(gwe), .rst(mem_rst_B));
-    // Nbit_reg #(3, 3'h8200) mem_nzp_new_reg_B (.in(i_nzp_new_bits_B), .out(mem_nzp_new_bits_B), .clk(clk), .we(1'b1), .gwe(gwe), .rst(mem_rst_B));
-
+    
         /*********************
         *     WM BYPASS   *
         **********************/
@@ -753,6 +762,14 @@ module lc4_processor
       $display("\n decode_B PC: %h, decode insn: %h, exe o_result: %h, exe_alu_rs_input: %h, exe_alu_rt_input: %h,  decode_ird: %h, decode_irs: %h, decode_irt: %h, decode_selpcplusone_insn: %h， decode_pcplus1: %h, nzp_we: %h", decode_pc_B, decode_insn_B, o_result_B, exe_alu_rs_input_B, exe_alu_rt_input_B, decode_ird_B, decode_irs_B, decode_irt_B, decode_selpcplusone_insn_B, decode_pcplus1_B, decode_nzpwe_B);  
       $display("decode_stall_B: %h, decode_br_stall_B: %h, ", decode_stall_B, decode_br_stall_B);
 
+      // assign decode_stall_ltu_sel_A = (exe_isload_insn_A && exe_irdwe_A && ((decode_irs_A == exe_ird_A && !decode_check_rs_A) || (decode_irt_A==exe_ird_A && !decode_check_rt_A))) 
+      //                               || (exe_isload_insn_A && decode_isbranch_A && !exe_nzpwe_B)
+      //                               || (exe_isload_insn_B && exe_irdwe_B && ((decode_irs_A == exe_ird_B && !decode_check_rs_A) || (decode_irt_A==exe_ird_B && !decode_check_rt_A))) 
+      //                               || (exe_isload_insn_B && decode_isbranch_A);
+      $display("decode_stall :) %h %h %h %h", (exe_isload_insn_A && exe_irdwe_A && ((decode_irs_A == exe_ird_A && !decode_check_rs_A) || (decode_irt_A==exe_ird_A && !decode_check_rt_A))) 
+                                    , (exe_isload_insn_A && decode_isbranch_A && !exe_nzpwe_B)
+                                    , (exe_isload_insn_B && exe_irdwe_B && ((decode_irs_A == exe_ird_B && !decode_check_rs_A) || (decode_irt_A==exe_ird_B && !decode_check_rt_A))) 
+                                    , (exe_isload_insn_B && decode_isbranch_A));
 
       // (!decode_check_rd_A && ((decode_ird_A == decode_irt_B && !decode_check_rt_B) 
       //                                    || (decode_ird_A == decode_irs_B && !decode_check_rs_B)))
