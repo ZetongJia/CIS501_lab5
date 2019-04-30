@@ -200,12 +200,6 @@ module lc4_processor
     assign decode_pc_input_A = (is_AB_dependent || decode_stall_ltu_sel_B) ? decode_pc_B : fetch_pc_A; 
     assign decode_pc_input_B = (is_AB_dependent || decode_stall_ltu_sel_B) ? fetch_pc_A : fetch_pc_B; 
 
-    //Test wire
-    wire[1:0] test_decode_pc_input_A, test_decode_pc_input_B;
-
-    assign test_decode_pc_input_A = (is_AB_dependent || decode_stall_ltu_sel_B) ? 0 : 1; 
-    assign test_decode_pc_input_B = (is_AB_dependent || decode_stall_ltu_sel_B) ? 0 : 1; 
-
     /*******************************
     *            LTU stall         *
     *******************************/
@@ -413,9 +407,6 @@ module lc4_processor
     wire[15:0] branch_result_afterMux_A, data_to_test_A; 
     //which data to test? if a pc+1 data then just exe_pc+1, if nzpwe then oresult
     assign data_to_test_A = exe_selpcplusone_insn_A? (exe_pc_A + 1): (exe_nzpwe_A? o_result_A: i_cur_dmem_data);
-    //testing wire!
-    wire[1:0] data_to_test_sel_A;
-    assign data_to_test_sel_A = exe_selpcplusone_insn_A? 'b0: (exe_nzpwe_A? 'b01: 'b10);
 
     NZP_testor nzp_t_A(.result(data_to_test_A), .nzp(i_nzp_new_bits_A));
     assign nzp_3bit_A = exe_nzpwe_A ? i_nzp_new_bits_A : nzp_serial_last;
@@ -431,13 +422,11 @@ module lc4_processor
                           (exe_iscontroinsn_B ? o_result_B:
                             ((exe_isbranch_B & nzp_sel_B) ? branch_result_afterMux_B : pc_plus1_A)));
 
-      //testing wire!
-      wire[2:0] test_next_pc_A;
-      assign test_next_pc_A = exe_iscontroinsn_A ? 'b0 : 
-                        ((exe_isbranch_A & nzp_sel_A) ? 'b1 : 
-                          (exe_iscontroinsn_B ? 'b10:
-                            ((exe_isbranch_B & nzp_sel_B) ? 'b11 : 'b100)));
-
+      //nzp to put into the test_NZP :)
+      wire[15:0] testing_wire_A;
+      wire[2:0] testing_output_A;
+      assign testing_wire_A = (exe_isbranch_A || exe_isstore_insn_A || (exe_iscontroinsn_A && exe_insn_A[15:12] != 'b1111))? o_result_A: (exe_pc_A + 1);
+      NZP_testor nzp_t_A_test(.result(testing_wire_A), .nzp(testing_output_A));
     /*****************
     *    BRANCH B.    *
     ******************/
@@ -445,13 +434,13 @@ module lc4_processor
     wire nzp_sel_B; //0 or 1
     wire[15:0] JSR_op_B; //just for JSR
     wire[15:0] branch_result_afterMux_B, data_to_test_B; 
-    assign data_to_test_B = exe_selpcplusone_insn_B? (exe_pc_B + 1): (exe_nzpwe_B? o_result_B: i_cur_dmem_data);
+    // assign data_to_test_B = exe_selpcplusone_insn_B? (exe_pc_B + 1): (exe_nzpwe_B? o_result_B: i_cur_dmem_data);
+    assign data_to_test_B = exe_selpcplusone_insn_B? (exe_pc_B + 1): 
+                          (exe_nzpwe_B? o_result_B: i_cur_dmem_data);
 
-    //testing wire!
-    wire[1:0] data_to_test_sel_B;
-    assign data_to_test_sel_B = exe_selpcplusone_insn_B? 'b0: (exe_nzpwe_B? 'b01: 'b10);
 
      NZP_testor nzp_t_B(.result(data_to_test_B), .nzp(i_nzp_new_bits_B));
+
      assign nzp_3bit_B = exe_nzpwe_B ? i_nzp_new_bits_B : (exe_nzpwe_A? i_nzp_new_bits_A : nzp_serial_last);
      // Nbit_reg #(.n(3), .r(3'b000)) nzp_reg_B(.in(i_nzp_new_bits_B), .out(nzp_3bit_B), .clk(clk), .we('b10), .gwe(gwe), .rst(rst));
      NZP_check nzp_c_B(.i_insn(exe_insn_B[11:9]), .nzp(nzp_3bit_B), .NZP_op(nzp_sel_B)); //nzp_sel correspond to current nzp
@@ -460,6 +449,10 @@ module lc4_processor
      //***check if branch/NOP/JMP/JMPR/TRAP
      assign branch_result_afterMux_B = (nzp_sel_B == 1) ? o_result_B : (exe_pc_B+1);
      
+      wire[15:0] testing_wire_B;
+      wire[2:0] testing_output_B;
+      assign testing_wire_B = (exe_isbranch_B || exe_isstore_insn_B || (exe_iscontroinsn_B && exe_insn_B[15:12] != 'b1111)) ? o_result_B: (exe_pc_A + 1);
+      NZP_testor nzp_t_B_test(.result(testing_wire_B), .nzp(testing_output_B));
     /*******************************
     *            Memory  A         *
     *******************************/   
@@ -493,7 +486,8 @@ module lc4_processor
     
     wire[2:0] nzp_new_bits_A_input; //fun observation: all branch has nzp_new_bits=4 :)
     // assign nzp_new_bits_A_input = (exe_isbranch_A || exe_iscontroinsn_A || exe_isstore_insn_A) ? 'b100 : i_nzp_new_bits_A;
-    assign nzp_new_bits_A_input = i_nzp_new_bits_A;
+    assign nzp_new_bits_A_input = (exe_isstore_insn_A || exe_isbranch_A || exe_insn_A[15:12] == 'b1111 || exe_iscontroinsn_A)? testing_output_A: i_nzp_new_bits_A;
+    // assign nzp_new_bits_A_input = (exe_isstore_insn_A || exe_isbranch_A || exe_iscontroinsn_A)? testing_output_A: ((exe_insn_A[15:12] == 'b1111)? 'b1 : i_nzp_new_bits_A);
     Nbit_reg #(3, 3'b000) mem_nzp_new_reg_A (.in(nzp_new_bits_A_input), .out(mem_nzp_new_bits_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(rst));
 
     // Nbit_reg #(3, 3'h8200) mem_nzp_new_reg_A (.in(i_nzp_new_bits_A), .out(mem_nzp_new_bits_A), .clk(clk), .we(1'b1), .gwe(gwe), .rst(mem_rst_B));
@@ -534,7 +528,8 @@ module lc4_processor
 
     wire[2:0] nzp_new_bits_B_input;
     // assign nzp_new_bits_B_input = (exe_isbranch_B || exe_iscontroinsn_B || exe_isstore_insn_B) ? 'b100 : i_nzp_new_bits_B;
-    assign nzp_new_bits_B_input = i_nzp_new_bits_B;
+    assign nzp_new_bits_B_input = (exe_isstore_insn_B || exe_isbranch_B || exe_insn_B[15:12] == 'b1111 || exe_iscontroinsn_B)? testing_output_B: i_nzp_new_bits_B;
+    // assign nzp_new_bits_B_input = (exe_isstore_insn_B || exe_isbranch_B || exe_iscontroinsn_B)? testing_output_B: ((exe_insn_B[15:12] == 'b1111)? 'b1 : (i_nzp_new_bits_B));
     Nbit_reg #(3, 3'b000) mem_nzp_new_reg_B (.in(nzp_new_bits_B_input), .out(mem_nzp_new_bits_B), .clk(clk), .we(1'b1), .gwe(gwe), .rst(mem_rst_B));
     
         /*********************
@@ -757,63 +752,33 @@ module lc4_processor
 
     pinstr(decode_insn_A);
       $display("\n decode_A PC: %h, decode insn: %h, exe o_result: %h, exe_alu_rs_input: %h, exe_alu_rt_input: %h,  decode_ird: %h, decode_irs: %h, decode_irt: %h, decode_selpcplusone_insn: %h， decode_pcplus1: %h, nzp_we: %h", decode_pc_A, decode_insn_A, o_result_A, exe_alu_rs_input_A, exe_alu_rt_input_A, decode_ird_A, decode_irs_A, decode_irt_A, decode_selpcplusone_insn_A, decode_pcplus1_A, decode_nzpwe_A);  
-      $display("decode_stall_A: %h, decode_br_stall_A: %h, ", decode_stall_A, decode_br_stall_A);
     pinstr(decode_insn_B);
       $display("\n decode_B PC: %h, decode insn: %h, exe o_result: %h, exe_alu_rs_input: %h, exe_alu_rt_input: %h,  decode_ird: %h, decode_irs: %h, decode_irt: %h, decode_selpcplusone_insn: %h， decode_pcplus1: %h, nzp_we: %h", decode_pc_B, decode_insn_B, o_result_B, exe_alu_rs_input_B, exe_alu_rt_input_B, decode_ird_B, decode_irs_B, decode_irt_B, decode_selpcplusone_insn_B, decode_pcplus1_B, decode_nzpwe_B);  
-      $display("decode_stall_B: %h, decode_br_stall_B: %h, ", decode_stall_B, decode_br_stall_B);
-
-      // assign decode_stall_ltu_sel_A = (exe_isload_insn_A && exe_irdwe_A && ((decode_irs_A == exe_ird_A && !decode_check_rs_A) || (decode_irt_A==exe_ird_A && !decode_check_rt_A))) 
-      //                               || (exe_isload_insn_A && decode_isbranch_A && !exe_nzpwe_B)
-      //                               || (exe_isload_insn_B && exe_irdwe_B && ((decode_irs_A == exe_ird_B && !decode_check_rs_A) || (decode_irt_A==exe_ird_B && !decode_check_rt_A))) 
-      //                               || (exe_isload_insn_B && decode_isbranch_A);
-      $display("decode_stall :) %h %h %h %h", (exe_isload_insn_A && exe_irdwe_A && ((decode_irs_A == exe_ird_A && !decode_check_rs_A) || (decode_irt_A==exe_ird_A && !decode_check_rt_A))) 
-                                    , (exe_isload_insn_A && decode_isbranch_A && !exe_nzpwe_B)
-                                    , (exe_isload_insn_B && exe_irdwe_B && ((decode_irs_A == exe_ird_B && !decode_check_rs_A) || (decode_irt_A==exe_ird_B && !decode_check_rt_A))) 
-                                    , (exe_isload_insn_B && decode_isbranch_A));
-
-      // (!decode_check_rd_A && ((decode_ird_A == decode_irt_B && !decode_check_rt_B) 
-      //                                    || (decode_ird_A == decode_irs_B && !decode_check_rs_B)))
-      //                         || ((decode_isload_insn_A || decode_isstore_insn_A) && (decode_isstore_insn_B || decode_isload_insn_B))
-      //                         || (decode_nzpwe_A && decode_isbranch_B)
-
-      $display("is_AB_dependent: %h， emmm ： %h", is_AB_dependent, (decode_ird_A == decode_irs_B && !decode_check_rs_B));
-
-
-    $display("\n decode_stall_ltu_sel_A: %h, decode_stall_ltu_sel_B: %h, i_br_stall_A: %h, i_br_stall_B: %h", decode_stall_ltu_sel_A, decode_stall_ltu_sel_B, i_br_stall_A, i_br_stall_B);
-    $display("\n exe_insn_A[11:9]: %h, nzp_3bit_A: %h, nzp_sel_A: %h ", exe_insn_A[11:9], nzp_3bit_A, nzp_sel_A);
-    // assign next_pc_A = exe_iscontroinsn_A ? o_result_A : 
-    //                     ((exe_isbranch_A & nzp_sel_A) ? branch_result_afterMux_A : 
-    //                       (exe_iscontroinsn_B ? o_result_B:
-    //                         ((exe_isbranch_B & nzp_sel_B) ? branch_result_afterMux_B : pc_plus1_A)));
-    $display("\n next_pc_A: %h, o_result_A: %h, test_next_pc_A: %h， branch_result_afterMux_A： %h, branch_result_afterMux_B: %h  ", next_pc_A, branch_result_afterMux_A, test_next_pc_A, branch_result_afterMux_A, branch_result_afterMux_B);
-
-    // assign decode_pc_input_A = (is_AB_dependent || decode_stall_ltu_sel_B) ? decode_pc_B : fetch_pc_A; 
-    // assign decode_pc_input_B = (is_AB_dependent || decode_stall_ltu_sel_B) ? fetch_pc_A : fetch_pc_B; 
-    $display("\n test_decode_pc_input_A: %h, test_decode_pc_input_B: %h", test_decode_pc_input_A, test_decode_pc_input_B);
 
     pinstr(exe_insn_A);
       $display("\n exe_A PC: %h, exe insn: %h, mem_oresult_insn: %h,  exe_rs_data: %h, exe_rt_data: %h, exe_ird: %h, exe_irs: %h, exe_irt: %h, o_result： %h, exe_selpcplusone_insn: %h， exe_pcplus1： %h, exe_alu_rs_input_A: %h,  exe_alu_rt_input_A: %h, mem_B_BP: %h,  mem_A_BP: %h, wri_B_BP: %h, wri_A_BP: %h, mem_oresult_insn_B: %h, mem_oresult_insn_A: %h, nzp_we: %h ", exe_pc_A, exe_insn_A, o_result_A, exe_rs_data_A, exe_rt_data_A, exe_ird_A, exe_irs_A, exe_irt_A, o_result_A, exe_selpcplusone_insn_A, exe_pcplus1_A, exe_alu_rs_input_A, exe_alu_rt_input_A, 
                                                                                                                                                                                     ((exe_irs_A == mem_ird_B) && mem_irdwe_B), ((exe_irs_A == mem_ird_A) && mem_irdwe_A), ((exe_irs_A == wri_ird_B) && wri_irdwe_B), ((exe_irs_A == wri_ird_A) && wri_irdwe_A), mem_oresult_insn_B, mem_oresult_insn_A, exe_nzpwe_A);  
-      $display("exe_stall_A: %h, exe_br_stall_A: %h, data_to_test_sel_A: %h , 0: %h, 1: %h, 2: %h， nzp_3bit_A： %h ", exe_stall_A, exe_br_stall_A, data_to_test_sel_A, exe_pcplus1_A, o_result_A, i_cur_dmem_data, nzp_3bit_A); 
     pinstr(exe_insn_B);
       $display("\n exe_B PC: %h, exe insn: %h, mem_oresult_insn: %h,  exe_rs_data: %h, exe_rt_data: %h, exe_ird: %h, exe_irs: %h, exe_irt: %h, o_result： %h, exe_selpcplusone_insn: %h， exe_pcplus1： %h, exe_alu_rt_input_B:%h, exe_alu_rt_input_B:%h , nzp_we: %h", exe_pc_B, exe_insn_B, o_result_B, exe_rs_data_B, exe_rt_data_B, exe_ird_B, exe_irs_B, exe_irt_B, o_result_B, exe_selpcplusone_insn_B, exe_pcplus1_B, exe_alu_rs_input_B, exe_alu_rt_input_B, exe_nzpwe_B);  
-      $display("exe_stall_B: %h, exe_br_stall_B: %h, data_to_test_sel_B: %h ", exe_stall_B, exe_br_stall_B, data_to_test_sel_B);
-    
-    $display("\n nzp_serial_input: %h, nzp_serial_last: %h, nzp_3bit_A: %h, nzp_3bit_B: %h, nzp_sel_A: %h, nzp_sel_B: %h",nzp_serial_input, nzp_serial_last, nzp_3bit_A, nzp_3bit_B, nzp_sel_A, nzp_sel_B);
 
+    // wire[1:0] testing_wire_B, testing_output_B;
+    //   assign testing_wire_B = (exe_isbranch_B || exe_isstore_insn_B || exe_iscontroinsn_B) ? o_result_B: (exe_pc_B + 1);
+    //   NZP_testor nzp_t_B_test(.result(testing_wire_B), .nzp(testing_output_B));
+
+    $display("testing_wire_A: %h, testing_output_A: %h, o_result_A: %h, (exe_pc_A + 1): %h",testing_wire_A, testing_output_A, o_result_A, (exe_pc_A + 1));
+    $display("exe_isbranch_A: %h, exe_isstore_insn_A: %h, exe_iscontroinsn_A: %h, ",exe_isbranch_A, exe_isstore_insn_A, exe_iscontroinsn_A);
+    $display("testing_wire_B: %h, testing_output_B: %h, o_result_B: %h, (exe_pc_B + 1): %h",testing_wire_B, testing_output_B, o_result_B, (exe_pc_B + 1));
+    $display("exe_isbranch_B: %h, exe_isstore_insn_B: %h, exe_iscontroinsn_B: %h, ",exe_isbranch_B, exe_isstore_insn_B, exe_iscontroinsn_B);
+    
     pinstr(mem_insn_A);
       $display("\n mem_A PC: %h, mem insn: %h, mem_selpcplusone_insn: %h, mem_pcplus1: %h, mem_isload_insn: %h, mem_isstore_insn: %h, mem_oresult_insn: %h,  mem_rs_data: %h, mem_rt_data: %h, mem_ird: %h, mem_irs: %h, mem_irt: %h, o_dmem_addr_A : %h, mem_oresult_insn_A : %h , nzp_we: %h", mem_pc_A, mem_insn_A, mem_selpcplusone_insn_A, mem_pcplus1_A, mem_isload_insn_A, mem_isstore_insn_A, mem_oresult_insn_A, mem_rs_data_A, mem_rt_data_A, mem_ird_A, mem_irs_A, mem_irt_A, o_dmem_addr_A, mem_oresult_insn_A, mem_nzpwe_A);  
-      $display("mem_stall_A: %h, mem_br_stall_A: %h, mem_nzp_new_bits_A: %h ", mem_stall_A, mem_br_stall_A, mem_nzp_new_bits_A);
     pinstr(mem_insn_B);
       $display("\n mem_B PC: %h, mem insn: %h, mem_selpcplusone_insn: %h, mem_pcplus1: %h, mem_isload_insn: %h, mem_isstore_insn: %h,  mem_oresult_insn: %h,  mem_rs_data: %h, mem_rt_data: %h, mem_ird: %h, mem_irs: %h, mem_irt: %h, o_dmem_addr_B: %h, mem_oresult_insn_B : %h , nzp_we: %h", mem_pc_B, mem_insn_B, mem_selpcplusone_insn_B, mem_pcplus1_B, mem_isload_insn_B, mem_isstore_insn_B, mem_oresult_insn_B, mem_rs_data_B, mem_rt_data_B, mem_ird_B, mem_irs_B, mem_irt_B, o_dmem_addr_B, mem_oresult_insn_B, mem_nzpwe_B);  
-      $display("mem_stall_B: %h, mem_br_stall_B: %h, mem_nzp_new_bits_B: %h ", mem_stall_B, mem_br_stall_B, mem_nzp_new_bits_B);
 
     pinstr(wri_insn_A);
       $display("\n (current round A)wri PC: %h, wri insn: %h, wri_wdata: %h, wri_selpcplusone_insn: %h, wri_pcplus1: %h, wri_isload_insn: %h, wri_icurdmemdata: %h, wri_oresult_insn: %h,  wri_rs_data: %h, wri_rt_data: %h, wri_ird: %h, wri_irs: %h, wri_irt: %h, wri_odmemaddr_A: %h, nzp_we: %h", wri_pc_A, wri_insn_A, wri_iwdata_A, wri_selpcplusone_insn_A, wri_pcplus1_A, wri_isload_insn_A, wri_icurdmemdata_A, wri_oresult_insn_A, wri_rs_data_A, wri_rt_data_A, wri_ird_A, wri_irs_A, wri_irt_A, wri_odmemaddr_A, wri_nzpwe_A);  
-      $display("wri_stall_A: %h, wri_br_stall_A: %h, wri_nzp_new_bits_A: %h ", wri_stall_A, wri_br_stall_A, wri_nzp_new_bits_A);
     pinstr(wri_insn_B);
       $display("\n (current round B)wri PC: %h, wri insn: %h, wri_wdata: %h, wri_selpcplusone_insn: %h, wri_pcplus1: %h, wri_isload_insn: %h, wri_icurdmemdata: %h, wri_oresult_insn: %h,  wri_rs_data: %h, wri_rt_data: %h, wri_ird: %h, wri_irs: %h, wri_irt: %h, wri_odmemaddr_A: %h, nzp_we: %h", wri_pc_B, wri_insn_B, wri_iwdata_B, wri_selpcplusone_insn_B, wri_pcplus1_B, wri_isload_insn_B, wri_icurdmemdata_B, wri_oresult_insn_B, wri_rs_data_B, wri_rt_data_B, wri_ird_B, wri_irs_B, wri_irt_B, wri_odmemaddr_B, wri_nzpwe_B);  
-      $display("wri_stall_B: %h, wri_br_stall_B: %h, wri_nzp_new_bits_B: %h ", wri_stall_B, wri_br_stall_B, wri_nzp_new_bits_B);
 
       $display("\n \n");
 
